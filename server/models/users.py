@@ -3,7 +3,7 @@ from datetime import datetime
 from database import db
 from werkzeug.security import generate_password_hash, check_password_hash
 
-class User(db.Model):
+class User(db.Model, SerializerMixin):
     """
     User Model: Manages admins and fleet managers (login system).
     - Tracks user roles (Admin/Fleet Manager).

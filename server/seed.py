@@ -1,10 +1,10 @@
+# from . import create_app
 from faker import Faker
 from datetime import datetime, timedelta
 from models import db, Driver, Truck, Assignment, User
 from app import app
 from database import db
 import random
-# from . import create_app
 
 # Initialize Faker for generating fake data
 fake = Faker()

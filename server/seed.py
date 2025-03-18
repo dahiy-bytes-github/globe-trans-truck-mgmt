@@ -1,20 +1,23 @@
 from faker import Faker
 from datetime import datetime, timedelta
-from .models import db, Driver, Truck, Assignment, User
-from . import create_app
+from models import db, Driver, Truck, Assignment, User
+from app import app
+from database import db
+import random
+# from . import create_app
 
-# Initialize Faker
+# Initialize Faker for generating fake data
 fake = Faker()
 
 def seed_drivers(num_drivers=10):
     """
-    Seed the database with fake drivers.
+    Generate and return a list of fake driver instances.
     """
     drivers = []
     for _ in range(num_drivers):
         driver = Driver(
             name=fake.name(),
-            license_number=fake.unique.bothify(text='??#########'),  # Unique license number
+            license_number=fake.unique.bothify(text='??#########'),  # Unique license number format
             contact_info=fake.phone_number(),
             created_at=datetime.utcnow()
         )
@@ -23,12 +26,12 @@ def seed_drivers(num_drivers=10):
 
 def seed_trucks(num_trucks=5):
     """
-    Seed the database with fake trucks.
+    Generate and return a list of fake truck instances.
     """
     trucks = []
     for _ in range(num_trucks):
         truck = Truck(
-            plate_number=fake.unique.bothify(text='???###'),  # Unique plate number
+            plate_number=fake.unique.bothify(text='???###'),  # Unique plate number format
             model=fake.random_element(elements=("Ford F-150", "Chevrolet Silverado", "Ram 1500", "Toyota Tacoma")),
             status=fake.random_element(elements=("Available", "In Use", "Maintenance")),
             created_at=datetime.utcnow()
@@ -38,33 +41,34 @@ def seed_trucks(num_trucks=5):
 
 def seed_assignments(drivers, trucks, num_assignments=15):
     """
-    Seed the database with fake assignments.
+    Generate and return a list of fake assignment instances.
     """
     assignments = []
     for _ in range(num_assignments):
-        start_date = fake.date_time_between(start_date="-30d", end_date="now")
-        end_date = fake.date_time_between(start_date=start_date, end_date="+30d") if fake.boolean(chance_of_getting_true=70) else None
+        start_date = fake.date_time_between(start_date="-30d", end_date="now")  # Start date within the last 30 days
+        end_date = (fake.date_time_between(start_date=start_date, end_date="+30d") 
+                    if fake.boolean(chance_of_getting_true=70) else None)  # 70% chance of having an end date
         assignment = Assignment(
             start_date=start_date,
             end_date=end_date,
             status=fake.random_element(elements=("Active", "Completed")),
-            driver_id=fake.random_element(elements=[driver.id for driver in drivers]),
-            truck_id=fake.random_element(elements=[truck.id for truck in trucks])
+            driver_id=fake.random_element(elements=[driver.id for driver in drivers]),  # Random driver
+            truck_id=fake.random_element(elements=[truck.id for truck in trucks])  # Random truck
         )
         assignments.append(assignment)
     return assignments
 
 def seed_users(num_users=3):
     """
-    Seed the database with fake users (admins and fleet managers).
+    Generate and return a list of fake user instances.
     """
     users = []
     for _ in range(num_users):
         user = User(
             username=fake.unique.user_name(),
             email=fake.unique.email(),
-            password_hash=fake.password(length=12),  # Fake password hash
-            role=fake.random_element(elements=("Admin", "Fleet Manager")),
+            password_hash=fake.password(length=12),  # Fake password (not actually hashed)
+            role=fake.random_element(elements=("Admin", "Fleet Manager")),  # Assign random role
             created_at=datetime.utcnow()
         )
         users.append(user)
@@ -72,7 +76,7 @@ def seed_users(num_users=3):
 
 def seed_database():
     """
-    Main function to seed the database with fake data.
+    Seed the database with fake data.
     """
     app = create_app()
     with app.app_context():

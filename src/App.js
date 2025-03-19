@@ -3,9 +3,9 @@ import { BrowserRouter as Router, Routes, Route, Link, Navigate } from "react-ro
 import Register from "./pages/Register";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
-import Drivers from "./pages/Drivers";
-import Trucks from "./pages/Trucks";
-import Assignments from "./pages/Assignments";
+
+
+
 import "./App.css";
 
 function App() {
@@ -39,9 +39,7 @@ function App() {
   <div className="nav-left">
     <ul className="nav-links">
       <li><Link to="/">Home</Link></li>
-      {isAdmin && <li><Link to="/drivers">Drivers</Link></li>}
-      {isAdmin && <li><Link to="/trucks">Trucks</Link></li>}
-      <li><Link to="/assignments">Assignments</Link></li>
+    
     </ul>
   </div>
   <div className="nav-right">
@@ -55,9 +53,9 @@ function App() {
         <div className="content">
           <Routes>
             <Route path="/" element={<Home />} />
-            {isAdmin && <Route path="/drivers" element={<Drivers />} />}
-            {isAdmin && <Route path="/trucks" element={<Trucks />} />}
-            <Route path="/assignments" element={<Assignments />} />
+            
+            
+        
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="*" element={<Navigate to="/" />} />

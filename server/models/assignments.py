@@ -23,6 +23,16 @@ class Assignment(db.Model, SerializerMixin):
     driver = db.relationship("Driver", back_populates="assignments")  # Link to Driver model
     truck = db.relationship("Truck", back_populates="assignments")  # Link to Truck model
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "start_date": self.start_date.strftime('%Y-%m-%d %H:%M:%S'),
+            "end_date": self.end_date.strftime('%Y-%m-%d %H:%M:%S') if self.end_date else None,
+            "status": self.status,
+            "driver_id": self.driver_id,
+            "truck_id": self.truck_id
+        }
+
     def __repr__(self):
         """Returns a readable string representation of an Assignment object."""
         return f"<Assignment Driver ID: {self.driver_id}, Truck ID: {self.truck_id}, Status: {self.status}>"

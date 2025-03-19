@@ -4,6 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+<<<<<<< HEAD
 flask = "*"
 flask-sqlalchemy = "*"
 flask-migrate = "*"
@@ -12,6 +13,10 @@ flask-restful = "*"
 flask-bcrypt = "*"
 flask-jwt-extended = "*"
 faker = "*"
+=======
+flask-login = "*"
+python-dotenv = "*"
+>>>>>>> feature/api-updates
 
 [dev-packages]
 

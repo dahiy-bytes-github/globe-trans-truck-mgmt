@@ -1,4 +1,3 @@
-# from . import create_app
 from faker import Faker
 from datetime import datetime, timedelta
 from models import db, Driver, Truck, Assignment, User
@@ -78,7 +77,6 @@ def seed_database():
     """
     Seed the database with fake data.
     """
-    app = create_app()
     with app.app_context():
         # Clear existing data
         print("Clearing existing data...")
@@ -113,3 +111,4 @@ def seed_database():
 
 if __name__ == "__main__":
     seed_database()
+    

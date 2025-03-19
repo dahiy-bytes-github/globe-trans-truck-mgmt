@@ -21,6 +21,17 @@ class Driver(db.Model, SerializerMixin):
     assignments = db.relationship("Assignment", back_populates="driver", cascade="all, delete-orphan")  
     # Establishes one-to-many relationship with assignments
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "license_number": self.license_number,
+            "contact_info": self.contact_info,
+            "assigned_truck_id": self.assigned_truck_id,
+            "created_at": self.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        }
+
     def __repr__(self):
         """Returns a readable string representation of a Driver object."""
         return f"<Driver {self.name}, License: {self.license_number}>"
+    

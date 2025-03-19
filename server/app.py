@@ -35,14 +35,64 @@ login_manager.login_view = "login"
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
+#AUTHENTICATION ENDPOINTS
+@app.route('/register', methods=['POST'])
+def register():
+    """ Register a new user """
+    data = request.get_json()
+
+    if not data.get("username") or not data.get("password"):
+        return jsonify({"error": "Username and password are required"}), 400
+
+    existing_user = User.query.filter_by(username=data["username"]).first()
+    if existing_user:
+        return jsonify({"error": "User already exists, please login"}), 400
+
+    hashed_password = generate_password_hash(data["password"])
+    new_user = User(username=data["username"], password_hash=hashed_password)
+
+    db.session.add(new_user)
+    db.session.commit()
+
+    return jsonify({"message": "User registered successfully"}), 201
+
+@app.route('/login', methods=['POST'])
+def login():
+    """ Authenticate user """
+    data = request.get_json()
+
+    if not data.get("username") or not data.get("password"):
+        return jsonify({"error": "Username and password are required"}), 400
+
+    user = User.query.filter_by(username=data["username"]).first()
+    if not user:
+        return jsonify({"error": "User not found, please register"}), 404
+
+    if not check_password_hash(user.password_hash, data["password"]):
+        return jsonify({"error": "Incorrect credentials, please try again or register"}), 401
+
+    login_user(user)
+    return jsonify({"message": "Login successful"}), 200
+
+@app.route('/logout', methods=['POST'])
+@login_required
+def logout():
+    """ Logout the current user """
+    logout_user()
+    return jsonify({"message": "Logged out successfully"}), 200
+
+
 #Get all the drivers
 @app.route('/drivers', methods =['GET'])
+@login_required
 def get_drivers():
     drivers = Driver.query.all()
     driver_list = [driver.to_dict()for driver in drivers]
     return jsonify(driver_list), 200
 #Get a driver by id
 @app.route('/drivers/<int:id>')
+@login_required
 def get_driver_by_id(id):
     driver = Driver.query.filter(Driver.id == id).first()
     if driver is None:
@@ -50,6 +100,7 @@ def get_driver_by_id(id):
     return jsonify(driver.to_dict()), 200
 # POST a new driver
 @app.route('/drivers', methods=['POST'])
+@login_required
 def create_driver():
     data = request.get_json()
     
@@ -76,6 +127,7 @@ def create_driver():
 
 # PATCH (Update) a driver by ID
 @app.route('/drivers/<int:id>', methods=['PATCH'])
+@login_required
 def update_driver(id):
     driver = Driver.query.get(id)
     if not driver:
@@ -100,6 +152,7 @@ def update_driver(id):
 
 # DELETE a driver by ID
 @app.route('/drivers/<int:id>', methods=['DELETE'])
+@login_required
 def delete_driver(id):
     driver = Driver.query.get(id)
     if not driver:
@@ -112,6 +165,7 @@ def delete_driver(id):
 
 # GET all trucks
 @app.route('/trucks', methods=['GET'])
+@login_required
 def get_trucks():
     trucks = Truck.query.all()
     truck_list = [truck.to_dict() for truck in trucks]
@@ -119,6 +173,7 @@ def get_trucks():
 
 # GET a truck by ID
 @app.route('/trucks/<int:id>', methods=['GET'])
+@login_required
 def get_truck_by_id(id):
     truck = Truck.query.get(id)
     if not truck:
@@ -128,6 +183,7 @@ def get_truck_by_id(id):
 
 # POST a new truck
 @app.route('/trucks', methods=['POST'])
+@login_required
 def create_truck():
     data = request.get_json()
     
@@ -153,6 +209,7 @@ def create_truck():
     return jsonify(new_truck.to_dict()), 201
 # PATCH (Update) a truck by ID
 @app.route('/trucks/<int:id>', methods=['PATCH'])
+@login_required
 def update_truck(id):
     truck = Truck.query.get(id)
     if not truck:
@@ -177,6 +234,7 @@ def update_truck(id):
 
 # DELETE a truck by ID
 @app.route('/trucks/<int:id>', methods=['DELETE'])
+@login_required
 def delete_truck(id):
     truck = Truck.query.get(id)
     if not truck:
@@ -189,12 +247,14 @@ def delete_truck(id):
 
 # GET all assignments
 @app.route('/assignments', methods=['GET'])
+@login_required
 def get_assignments():
     assignments = Assignment.query.all()
     return jsonify([assignment.to_dict() for assignment in assignments]), 200
 
 # GET an assignment by ID
 @app.route('/assignments/<int:id>', methods=['GET'])
+@login_required
 def get_assignment_by_id(id):
     assignment = Assignment.query.get(id)
     if not assignment:
@@ -204,6 +264,7 @@ def get_assignment_by_id(id):
 
 # POST a new assignment
 @app.route('/assignments', methods=['POST'])
+@login_required
 def create_assignment():
     data = request.get_json()
     
@@ -232,6 +293,7 @@ def create_assignment():
 
 # PATCH (Update) an assignment by ID
 @app.route('/assignments/<int:id>', methods=['PATCH'])
+@login_required
 def update_assignment(id):
     assignment = Assignment.query.get(id)
     if not assignment:
@@ -260,6 +322,7 @@ def update_assignment(id):
 
 # DELETE an assignment by ID
 @app.route('/assignments/<int:id>', methods=['DELETE'])
+@login_required
 def delete_assignment(id):
     assignment = Assignment.query.get(id)
     if not assignment:
@@ -269,62 +332,6 @@ def delete_assignment(id):
     db.session.commit()
 
     return jsonify({"message": "Assignment deleted successfully"}), 200
-
-#user registers
-@app.route('/users/register', methods=['POST'])
-def register_admin():
-    data = request.get_json()
-
-    required_fields = ['username', 'email', 'password']
-    for field in required_fields:
-        if field not in data or not data[field]:
-            return jsonify({'error': f'Missing field: {field}'}), 400
-
-    if User.query.filter_by(email=data['email']).first():
-        return jsonify({'error': 'Email already exists'}), 400
-
-    hashed_password = generate_password_hash(data['password'])
-    
-    new_admin = User(
-        username=data['username'],
-        email=data['email'],
-        password_hash=hashed_password, 
-        is_admin=True  # Ensures the user is an admin
-    )
-
-    db.session.add(new_admin)
-    db.session.commit()
-
-    return jsonify({'message': 'Admin registered successfully'}), 201
-
-#user logs in
-@app.route('/users/login', methods=['POST'])
-def login_admin():
-    data = request.get_json()
-
-    required_fields = ['email', 'password']
-    for field in required_fields:
-        if field not in data or not data[field]:
-            return jsonify({'error': f'Missing field: {field}'}), 400
-
-    admin = User.query.filter_by(email=data['email']).first()
-
-    if not admin or not check_password_hash(admin.password_hash, data['password']):
-        return jsonify({'error': 'Invalid email or password'}), 401
-
-    login_user(admin)  # Flask-Login manages the session
-
-    return jsonify({'message': 'Login successful'}), 200
-
-#user logs out
-@app.route('/users/logout', methods=['POST'])
-@login_required
-def logout_admin():
-    logout_user()  # Flask-Login logout
-    
-    return jsonify({'message': 'Logged out successfully'}), 200
-
-
 
 if __name__ == '__main__':
     app.run(debug=True)

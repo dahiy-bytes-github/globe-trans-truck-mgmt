@@ -20,6 +20,17 @@ class Truck(db.Model, SerializerMixin):
     # Relationships
     assignments = db.relationship("Assignment", back_populates="truck", cascade="all, delete-orphan")  
     # Establishes one-to-many relationship with assignments
+    driver = db.relationship("Driver", foreign_keys=[current_driver_id])  # Link to Driver model
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "plate_number": self.plate_number,
+            "model": self.model,
+            "status": self.status,
+            "current_driver_id": self.current_driver_id,
+            "created_at": self.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        }
 
     def __repr__(self):
         """Returns a readable string representation of a Truck object."""

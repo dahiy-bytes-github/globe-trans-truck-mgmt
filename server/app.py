@@ -5,10 +5,10 @@ from dotenv import load_dotenv
 from flask_migrate import Migrate
 
 from database import db  # Importing the database instance
-from drivers import Driver
-from trucks import Truck
-from assignments import Assignment
-from users import User
+from models.drivers import Driver
+from models.trucks import Truck
+from models.assignments import Assignment
+from models.users import User
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, login_user, logout_user, login_required

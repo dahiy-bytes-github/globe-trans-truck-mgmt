@@ -23,6 +23,7 @@ class Truck(db.Model, SerializerMixin):
     driver = db.relationship("Driver", foreign_keys=[current_driver_id])  # Link to Driver model
 
     def to_dict(self):
+        """Serializes the Truck object to a dictionary."""
         return {
             "id": self.id,
             "plate_number": self.plate_number,

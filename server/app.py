@@ -3,40 +3,46 @@ from flask_cors import CORS
 import os
 from dotenv import load_dotenv
 from flask_migrate import Migrate
-
-from database import db  # Importing the database instance
-from models.drivers import Driver
-from models.trucks import Truck
-from models.assignments import Assignment
-from models.users import User
-
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, login_user, logout_user, login_required
-
 from datetime import datetime
+import logging
 
+# Load environment variables
 load_dotenv()
 
+# Initialize Flask app
 app = Flask(__name__)
 
+# Configure database URI and other settings
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///globe_trans.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.secret_key = os.environ.get('SECRET_KEY', 'fallback_secret_key') 
+app.secret_key = os.environ.get('SECRET_KEY', 'fallback_secret_key')
 
+# Initialize SQLAlchemy and Flask-Migrate
+from database import db
 db.init_app(app)
 CORS(app)
 migrate = Migrate(app, db)
 
+# Initialize Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
+
+# Enable SQLAlchemy logging for debugging
+logging.basicConfig()
+logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+
+# Import models
+from models import Driver, Truck, Assignment, User
 
 # Load user for Flask-Login
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-#AUTHENTICATION ENDPOINTS
+# Authentication Endpoints
 @app.route('/register', methods=['POST'])
 def register():
     """ Register a new user """
@@ -54,6 +60,7 @@ def register():
 
     db.session.add(new_user)
     db.session.commit()
+    db.session.close()
 
     return jsonify({"message": "User registered successfully"}), 201
 
@@ -82,23 +89,22 @@ def logout():
     logout_user()
     return jsonify({"message": "Logged out successfully"}), 200
 
-
-#Get all the drivers
-@app.route('/drivers', methods =['GET'])
+# Driver Endpoints
+@app.route('/drivers', methods=['GET'])
 @login_required
 def get_drivers():
     drivers = Driver.query.all()
-    driver_list = [driver.to_dict()for driver in drivers]
+    driver_list = [driver.to_dict() for driver in drivers]
     return jsonify(driver_list), 200
-#Get a driver by id
-@app.route('/drivers/<int:id>')
+
+@app.route('/drivers/<int:id>', methods=['GET'])
 @login_required
 def get_driver_by_id(id):
-    driver = Driver.query.filter(Driver.id == id).first()
-    if driver is None:
-        return jsonify({"Driver": "Not found"}), 404
+    driver = Driver.query.get(id)
+    if not driver:
+        return jsonify({"error": "Driver not found"}), 404
     return jsonify(driver.to_dict()), 200
-# POST a new driver
+
 @app.route('/drivers', methods=['POST'])
 @login_required
 def create_driver():
@@ -122,10 +128,10 @@ def create_driver():
 
     db.session.add(new_driver)
     db.session.commit()
+    db.session.close()
 
     return jsonify(new_driver.to_dict()), 201
 
-# PATCH (Update) a driver by ID
 @app.route('/drivers/<int:id>', methods=['PATCH'])
 @login_required
 def update_driver(id):
@@ -147,10 +153,10 @@ def update_driver(id):
         driver.assigned_truck_id = data["assigned_truck_id"]
 
     db.session.commit()
+    db.session.close()
 
     return jsonify(driver.to_dict()), 200
 
-# DELETE a driver by ID
 @app.route('/drivers/<int:id>', methods=['DELETE'])
 @login_required
 def delete_driver(id):
@@ -160,10 +166,11 @@ def delete_driver(id):
 
     db.session.delete(driver)
     db.session.commit()
+    db.session.close()
 
     return jsonify({"message": "Driver deleted successfully"}), 200
 
-# GET all trucks
+# Truck Endpoints
 @app.route('/trucks', methods=['GET'])
 @login_required
 def get_trucks():
@@ -171,17 +178,14 @@ def get_trucks():
     truck_list = [truck.to_dict() for truck in trucks]
     return jsonify(truck_list), 200
 
-# GET a truck by ID
 @app.route('/trucks/<int:id>', methods=['GET'])
 @login_required
 def get_truck_by_id(id):
     truck = Truck.query.get(id)
     if not truck:
         return jsonify({"error": "Truck not found"}), 404
-
     return jsonify(truck.to_dict()), 200
 
-# POST a new truck
 @app.route('/trucks', methods=['POST'])
 @login_required
 def create_truck():
@@ -205,9 +209,10 @@ def create_truck():
 
     db.session.add(new_truck)
     db.session.commit()
+    db.session.close()
 
     return jsonify(new_truck.to_dict()), 201
-# PATCH (Update) a truck by ID
+
 @app.route('/trucks/<int:id>', methods=['PATCH'])
 @login_required
 def update_truck(id):
@@ -229,10 +234,10 @@ def update_truck(id):
         truck.current_driver_id = data["current_driver_id"]
 
     db.session.commit()
+    db.session.close()
 
     return jsonify(truck.to_dict()), 200
 
-# DELETE a truck by ID
 @app.route('/trucks/<int:id>', methods=['DELETE'])
 @login_required
 def delete_truck(id):
@@ -242,27 +247,25 @@ def delete_truck(id):
 
     db.session.delete(truck)
     db.session.commit()
+    db.session.close()
 
     return jsonify({"message": "Truck deleted successfully"}), 200
 
-# GET all assignments
+# Assignment Endpoints
 @app.route('/assignments', methods=['GET'])
 @login_required
 def get_assignments():
     assignments = Assignment.query.all()
     return jsonify([assignment.to_dict() for assignment in assignments]), 200
 
-# GET an assignment by ID
 @app.route('/assignments/<int:id>', methods=['GET'])
 @login_required
 def get_assignment_by_id(id):
     assignment = Assignment.query.get(id)
     if not assignment:
         return jsonify({"error": "Assignment not found"}), 404
-
     return jsonify(assignment.to_dict()), 200
 
-# POST a new assignment
 @app.route('/assignments', methods=['POST'])
 @login_required
 def create_assignment():
@@ -278,9 +281,15 @@ def create_assignment():
     if not Truck.query.get(data["truck_id"]):
         return jsonify({"error": "Truck not found"}), 404
 
+    try:
+        start_date = datetime.strptime(data["start_date"], '%Y-%m-%d %H:%M:%S')
+        end_date = datetime.strptime(data["end_date"], '%Y-%m-%d %H:%M:%S') if data.get("end_date") else None
+    except ValueError:
+        return jsonify({"error": "Invalid date format. Use 'YYYY-MM-DD HH:MM:SS'."}), 400
+
     new_assignment = Assignment(
-        start_date=datetime.strptime(data["start_date"], '%Y-%m-%d %H:%M:%S'),
-        end_date=datetime.strptime(data["end_date"], '%Y-%m-%d %H:%M:%S') if data.get("end_date") else None,
+        start_date=start_date,
+        end_date=end_date,
         status=data["status"],
         driver_id=data["driver_id"],
         truck_id=data["truck_id"]
@@ -288,10 +297,10 @@ def create_assignment():
 
     db.session.add(new_assignment)
     db.session.commit()
+    db.session.close()
 
     return jsonify(new_assignment.to_dict()), 201
 
-# PATCH (Update) an assignment by ID
 @app.route('/assignments/<int:id>', methods=['PATCH'])
 @login_required
 def update_assignment(id):
@@ -302,9 +311,15 @@ def update_assignment(id):
     data = request.get_json()
 
     if "start_date" in data:
-        assignment.start_date = datetime.strptime(data["start_date"], '%Y-%m-%d %H:%M:%S')
+        try:
+            assignment.start_date = datetime.strptime(data["start_date"], '%Y-%m-%d %H:%M:%S')
+        except ValueError:
+            return jsonify({"error": "Invalid start_date format. Use 'YYYY-MM-DD HH:MM:SS'."}), 400
     if "end_date" in data:
-        assignment.end_date = datetime.strptime(data["end_date"], '%Y-%m-%d %H:%M:%S') if data["end_date"] else None
+        try:
+            assignment.end_date = datetime.strptime(data["end_date"], '%Y-%m-%d %H:%M:%S') if data["end_date"] else None
+        except ValueError:
+            return jsonify({"error": "Invalid end_date format. Use 'YYYY-MM-DD HH:MM:SS'."}), 400
     if "status" in data:
         assignment.status = data["status"]
     if "driver_id" in data:
@@ -317,10 +332,10 @@ def update_assignment(id):
         assignment.truck_id = data["truck_id"]
 
     db.session.commit()
+    db.session.close()
 
     return jsonify(assignment.to_dict()), 200
 
-# DELETE an assignment by ID
 @app.route('/assignments/<int:id>', methods=['DELETE'])
 @login_required
 def delete_assignment(id):
@@ -330,8 +345,12 @@ def delete_assignment(id):
 
     db.session.delete(assignment)
     db.session.commit()
+    db.session.close()
 
     return jsonify({"message": "Assignment deleted successfully"}), 200
 
+# Run the application
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()  # Manually create tables
     app.run(debug=True)

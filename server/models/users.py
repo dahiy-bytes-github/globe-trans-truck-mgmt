@@ -27,6 +27,16 @@ class User(db.Model, SerializerMixin):
         """Verifies the provided password against the stored hash."""
         return check_password_hash(self.password_hash, password)
 
+    def to_dict(self):
+        """Serializes the User object to a dictionary."""
+        return {
+            "id": self.id,
+            "username": self.username,
+            "email": self.email,
+            "role": self.role,
+            "created_at": self.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        }
+
     def __repr__(self):
         """Returns a readable string representation of a User object."""
         return f"<User {self.username}, Role: {self.role}>"

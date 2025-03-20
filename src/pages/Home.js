@@ -13,11 +13,11 @@ function Home() {
         <img src={truckhomepage} alt="Fleet of trucks" className="hero-image" />
 
         <div className="hero-text">
-          <h1>
-            Welcome to <span className="highlight">{companyName}</span>
+          <h1 className="highlight-green">
+            Welcome to <span >{companyName}</span>
           </h1>
           <p>
-            Your trusted  <span className="highlight-green">reliable partner</span> 
+            Your trusted  <span >reliable partner</span> 
           
           </p>
         </div>
@@ -31,8 +31,8 @@ function Home() {
       {/* Company Description with Yellow Background + Contact Info */}
       <div className="company-description yellow-bg">
         <p>
-          Established in <span className="highlight-yellow">2010</span>,{" "}
-          <span className="highlight">GlobeTrans Logistics</span> has grown into a leading name in the{" "}
+          Established in <span className="highlight-blue">2010</span>,{" "}
+          <span className="highlight-blue">GlobeTrans Logistics</span> has grown into a leading name in the{" "}
           <span className="highlight-blue">transportation and logistics</span> industry, renowned for delivering excellence with every mile.
         </p>
 

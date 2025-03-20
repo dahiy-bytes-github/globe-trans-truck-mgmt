@@ -1,6 +1,6 @@
+from database import db 
 from sqlalchemy_serializer import SerializerMixin
 from datetime import datetime
-from database import db
 
 class Driver(db.Model, SerializerMixin):
     """
@@ -22,7 +22,6 @@ class Driver(db.Model, SerializerMixin):
     # Establishes one-to-many relationship with assignments
 
     def to_dict(self):
-        """Serializes the Driver object to a dictionary."""
         return {
             "id": self.id,
             "name": self.name,
@@ -35,3 +34,4 @@ class Driver(db.Model, SerializerMixin):
     def __repr__(self):
         """Returns a readable string representation of a Driver object."""
         return f"<Driver {self.name}, License: {self.license_number}>"
+    

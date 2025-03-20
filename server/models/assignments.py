@@ -24,7 +24,6 @@ class Assignment(db.Model, SerializerMixin):
     truck = db.relationship("Truck", back_populates="assignments")  # Link to Truck model
 
     def to_dict(self):
-        """Serializes the Assignment object to a dictionary."""
         return {
             "id": self.id,
             "start_date": self.start_date.strftime('%Y-%m-%d %H:%M:%S'),

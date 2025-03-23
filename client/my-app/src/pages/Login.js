@@ -13,15 +13,17 @@ function Login() {
   };
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    axios.post("http://localhost:5000/login", formData)
-      .then(response => {
-        // Save role from response.data.user.role
-        localStorage.setItem("role", response.data.user.role);
-        window.location.href = "/";
-      })
-      .catch(() => setError("Invalid login credentials"));
-  };
+    axios.post("http://localhost:5555/login", formData, {
+      withCredentials: true, //  Include session cookie from Flask
+    })
+    .then(response => {
+      // Save role from response.data.user.role
+      localStorage.setItem("role", response.data.user.role);
+      window.location.href = "/";
+    })
+    .catch(() => setError("Invalid login credentials"));
+    
+  }; // <-- ✅ Closing curly brace added here
 
   return (
     <div className="login-container">
@@ -48,4 +50,4 @@ function Login() {
   );
 }
 
-export default Login;
+export default Login; // ✅ This is now correctly placed

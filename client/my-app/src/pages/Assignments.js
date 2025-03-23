@@ -1,5 +1,4 @@
-// src/pages/Assignments.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 const Assignments = () => {
@@ -14,38 +13,37 @@ const Assignments = () => {
   });
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetchAssignments();
+  const getErrorMsg = (err, fallback = 'An error occurred.') => {
+    return err.response?.data?.error || err.response?.data?.message || fallback;
+  };
+
+  // ✅ Wrap fetchAssignments in useCallback to avoid re-creation
+  const fetchAssignments = useCallback(() => {
+    axios.get('http://localhost:5555/assignments', { withCredentials: true })
+      .then(response => setAssignments(response.data))
+      .catch(err => setError(getErrorMsg(err, 'Failed to fetch assignments.')));
   }, []);
 
-  const fetchAssignments = () => {
-    axios.get('http://localhost:5000/assignments')
-      .then(response => setAssignments(response.data))
-      .catch(() => setError('Failed to fetch assignments.'));
-  };
+  useEffect(() => {
+    fetchAssignments();
+  }, [fetchAssignments]); // ✅ Dependency is now correctly managed
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Create new assignment or update existing assignment
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (editingAssignment) {
-      axios.patch(`http://localhost:5000/assignments/${editingAssignment.id}`, formData)
-        .then(() => {
-          fetchAssignments();
-          resetForm();
-        })
-        .catch(() => setError('Failed to update assignment.'));
-    } else {
-      axios.post('http://localhost:5000/assignments', formData)
-        .then(() => {
-          fetchAssignments();
-          resetForm();
-        })
-        .catch(() => setError('Failed to create assignment.'));
-    }
+    const request = editingAssignment
+      ? axios.patch(`http://localhost:5555/assignments/${editingAssignment.id}`, formData, { withCredentials: true })
+      : axios.post('http://localhost:5555/assignments', formData, { withCredentials: true });
+
+    request
+      .then(() => {
+        fetchAssignments();
+        resetForm();
+      })
+      .catch(err => setError(getErrorMsg(err, editingAssignment ? 'Failed to update assignment.' : 'Failed to create assignment.')));
   };
 
   const handleEdit = (assignment) => {
@@ -60,15 +58,15 @@ const Assignments = () => {
   };
 
   const handleDelete = (id) => {
-    axios.delete(`http://localhost:5000/assignments/${id}`)
+    axios.delete(`http://localhost:5555/assignments/${id}`, { withCredentials: true })
       .then(() => fetchAssignments())
-      .catch(() => setError('Failed to delete assignment.'));
+      .catch(err => setError(getErrorMsg(err, 'Failed to delete assignment.')));
   };
 
   const handleGetById = (id) => {
-    axios.get(`http://localhost:5000/assignments/${id}`)
+    axios.get(`http://localhost:5555/assignments/${id}`, { withCredentials: true })
       .then(response => alert(JSON.stringify(response.data, null, 2)))
-      .catch(() => setError('Failed to fetch assignment details.'));
+      .catch(err => setError(getErrorMsg(err, 'Failed to fetch assignment details.')));
   };
 
   const resetForm = () => {
@@ -80,15 +78,16 @@ const Assignments = () => {
       driver_id: '',
       truck_id: ''
     });
+    setError('');
   };
 
   return (
     <div>
       <h1>Assignments</h1>
       {error && <p style={{ color: 'red' }}>{error}</p>}
-      
+
       <form onSubmit={handleSubmit}>
-      <input
+        <input
           type="number"
           name="driver_id"
           placeholder="Driver ID"
@@ -96,7 +95,6 @@ const Assignments = () => {
           onChange={handleChange}
           required
         />
-
         <input
           type="number"
           name="truck_id"
@@ -124,7 +122,7 @@ const Assignments = () => {
           <option value="Active">Active</option>
           <option value="Completed">Completed</option>
         </select>
-        
+
         <button type="submit">{editingAssignment ? 'Update Assignment' : 'Add Assignment'}</button>
         {editingAssignment && <button type="button" onClick={resetForm}>Cancel</button>}
       </form>

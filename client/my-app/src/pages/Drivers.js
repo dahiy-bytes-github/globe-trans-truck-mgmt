@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const Drivers = () => {
@@ -12,20 +12,19 @@ const Drivers = () => {
   });
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    fetchDrivers();
+  }, []);
+
   const getErrorMsg = (err, fallback = 'An error occurred.') => {
-    return err.response?.data?.error || err.response?.data?.message || fallback;
+    return err.response?.data?.error || fallback;
   };
 
-  // ✅ Wrap fetchDrivers in useCallback to prevent unnecessary re-creation
-  const fetchDrivers = useCallback(() => {
+  const fetchDrivers = () => {
     axios.get('http://localhost:5555/drivers', { withCredentials: true })
       .then(response => setDrivers(response.data))
       .catch(err => setError(getErrorMsg(err, 'Failed to fetch drivers.')));
-  }, []);
-
-  useEffect(() => {
-    fetchDrivers();
-  }, [fetchDrivers]); // ✅ Correct dependency
+  };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

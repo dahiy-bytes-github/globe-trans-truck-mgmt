@@ -1,8 +1,3 @@
-Fleet Management System backend. 
-This README provides all the necessary information for setting up, running, and understanding Fleet Management System application.
-
----
-
 # **Fleet Management System - Backend**
 
 The Fleet Management System is a **full-stack application** designed to manage drivers, trucks, assignments, and users. This repository contains the **backend** built with **Flask** and **SQLAlchemy**. The backend provides a RESTful API for the frontend (built with React) to interact with the database.

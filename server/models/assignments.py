@@ -1,5 +1,4 @@
 from sqlalchemy_serializer import SerializerMixin
-from datetime import datetime
 from database import db
 
 class Assignment(db.Model, SerializerMixin):

@@ -1,6 +1,6 @@
 from database import db 
 from sqlalchemy_serializer import SerializerMixin
-from datetime import datetime
+from sqlalchemy.sql import func
 
 class Driver(db.Model, SerializerMixin):
     """
@@ -15,7 +15,7 @@ class Driver(db.Model, SerializerMixin):
     license_number = db.Column(db.String(50), unique=True, nullable=False)  # Unique license number
     contact_info = db.Column(db.String(100), nullable=False)  # Contact details
     assigned_truck_id = db.Column(db.Integer, db.ForeignKey('trucks.id'), nullable=True)  # Current truck assignment
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)  # Timestamp when driver record was created
+    created_at = db.Column(db.DateTime, server_default=func.now())  # Timestamp when driver record was created
 
     # Relationships
     assignments = db.relationship("Assignment", back_populates="driver", cascade="all, delete-orphan")  

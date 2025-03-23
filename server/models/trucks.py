@@ -1,5 +1,5 @@
 from sqlalchemy_serializer import SerializerMixin
-from datetime import datetime
+from sqlalchemy.sql import func
 from database import db
 
 class Truck(db.Model, SerializerMixin):
@@ -15,7 +15,7 @@ class Truck(db.Model, SerializerMixin):
     model = db.Column(db.String(100), nullable=False)  # Truck model
     status = db.Column(db.String(50), nullable=False, default="Available")  # Truck status (Available/In Use/Maintenance)
     current_driver_id = db.Column(db.Integer, db.ForeignKey('drivers.id'), nullable=True)  # Assigned driver 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)  # Timestamp when the truck record was created
+    created_at = db.Column(db.DateTime, server_default=func.now())  # Timestamp when the truck record was created
 
     # Relationships
     assignments = db.relationship("Assignment", back_populates="truck", cascade="all, delete-orphan")  

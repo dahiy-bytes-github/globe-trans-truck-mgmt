@@ -1,123 +1,163 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-import os
-from dotenv import load_dotenv
+from flask import Flask, request, jsonify, session
+from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-
-from database import db  # Importing the database instance
-from drivers import Driver
-from trucks import Truck
-from assignments import Assignment
-from users import User
-
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import LoginManager, login_user, logout_user, login_required
-
+from flask_cors import CORS
+from dotenv import load_dotenv
+from functools import wraps
 from datetime import datetime
+import os
 
+from database import db
+from models import User, Driver, Truck, Assignment
+
+# Load environment variables
 load_dotenv()
 
+# Initialize Flask app
 app = Flask(__name__)
-
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///globe_trans.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.secret_key = os.environ.get('SECRET_KEY', 'fallback_secret_key') 
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
+# Initialize extensions
 db.init_app(app)
-CORS(app)
 migrate = Migrate(app, db)
+CORS(app, origins=["http://localhost:3000"], supports_credentials=True)
 
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = "login"
+# Decorators
 
-# Load user for Flask-Login
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'user_id' not in session:
+            return jsonify({"error": "Authentication required"}), 401
+        return f(*args, **kwargs)
+    return decorated
 
-#AUTHENTICATION ENDPOINTS
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({"error": "Unauthorized. Please log in."}), 401
+
+        user = User.query.get(user_id)
+        if not user or user.role != "Admin":
+            return jsonify({"error": "Forbidden. Admin access required."}), 403
+
+        return f(*args, **kwargs)
+    return decorated
+
+def admin_or_manager_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'role' not in session or session['role'] not in ['Admin', 'Fleet Manager']:
+            return jsonify({"error": "Admin or Fleet Manager access required"}), 403
+        return f(*args, **kwargs)
+    return decorated
+
+
+# Authentication Routes
+
 @app.route('/register', methods=['POST'])
 def register():
-    """ Register a new user """
     data = request.get_json()
+    username = data.get('username')
+    email = data.get('email')
+    password = data.get('password')
+    role = data.get('role', 'Fleet Manager')
 
-    if not data.get("username") or not data.get("password"):
-        return jsonify({"error": "Username and password are required"}), 400
+    if not username or not email or not password:
+        return jsonify({"error": "Username, email, and password are required."}), 400
 
-    existing_user = User.query.filter_by(username=data["username"]).first()
-    if existing_user:
-        return jsonify({"error": "User already exists, please login"}), 400
+    if User.query.filter_by(username=username).first():
+        return jsonify({"error": "Username already exists."}), 409
 
-    hashed_password = generate_password_hash(data["password"])
-    new_user = User(username=data["username"], password_hash=hashed_password)
+    if User.query.filter_by(email=email).first():
+        return jsonify({"error": "Email already exists."}), 409
 
-    db.session.add(new_user)
-    db.session.commit()
+    try:
+        new_user = User(username=username, email=email, role=role)
+        new_user.set_password(password)
+        db.session.add(new_user)
+        db.session.commit()
 
-    return jsonify({"message": "User registered successfully"}), 201
+        return jsonify({"message": "User registered successfully."}), 201
+
+    except Exception:
+        db.session.rollback()
+        return jsonify({"error": "An error occurred while creating the user."}), 500
 
 @app.route('/login', methods=['POST'])
 def login():
-    """ Authenticate user """
     data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
 
-    if not data.get("username") or not data.get("password"):
-        return jsonify({"error": "Username and password are required"}), 400
+    if not username or not password:
+        return jsonify({"error": "Username and password are required."}), 400
 
-    user = User.query.filter_by(username=data["username"]).first()
-    if not user:
-        return jsonify({"error": "User not found, please register"}), 404
+    user = User.query.filter_by(username=username).first()
+    if not user or not user.check_password(password):
+        return jsonify({"error": "Invalid username or password."}), 401
 
-    if not check_password_hash(user.password_hash, data["password"]):
-        return jsonify({"error": "Incorrect credentials, please try again or register"}), 401
+    session['user_id'] = user.id
+    session['username'] = user.username
+    session['role'] = user.role
 
-    login_user(user)
-    return jsonify({"message": "Login successful"}), 200
+    return jsonify({
+        "message": "Login successful.",
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "role": user.role
+        }
+    }), 200
 
 @app.route('/logout', methods=['POST'])
-@login_required
 def logout():
-    """ Logout the current user """
-    logout_user()
-    return jsonify({"message": "Logged out successfully"}), 200
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in."}), 401
+
+    session.clear()
+    return jsonify({"message": "Logged out successfully."}), 200
 
 
-#Get all the drivers
-@app.route('/drivers', methods =['GET'])
-@login_required
-def get_drivers():
+# Driver Routes
+
+@app.route('/drivers', methods=['GET'])
+@admin_required
+def get_all_drivers():
     drivers = Driver.query.all()
-    driver_list = [driver.to_dict()for driver in drivers]
-    return jsonify(driver_list), 200
-#Get a driver by id
-@app.route('/drivers/<int:id>')
-@login_required
+    return jsonify([d.to_dict() for d in drivers]), 200
+
+@app.route('/drivers/<int:id>', methods=['GET'])
+@admin_required
 def get_driver_by_id(id):
-    driver = Driver.query.filter(Driver.id == id).first()
-    if driver is None:
-        return jsonify({"Driver": "Not found"}), 404
+    driver = Driver.query.get(id)
+    if not driver:
+        return jsonify({"error": "Driver not found."}), 404
+
     return jsonify(driver.to_dict()), 200
-# POST a new driver
+
+
 @app.route('/drivers', methods=['POST'])
-@login_required
+@admin_required
 def create_driver():
     data = request.get_json()
-    
-    required_fields = ['name', 'license_number', 'contact_info']
-    for field in required_fields:
-        if field not in data or not data[field]:
-            return jsonify({'error': f"Missing required field: {field}"}), 400
-        
-    if Driver.query.filter_by(license_number=data["license_number"]).first():
-        return jsonify({"error": "License number already exists"}), 400
-    
+    for field in ['name', 'license_number', 'contact_info']:
+        if field not in data:
+            return jsonify({"error": f"Missing required field: {field}"}), 400
+
+    if Driver.query.filter_by(license_number=data['license_number']).first():
+        return jsonify({"error": "License number already exists."}), 409
+
     new_driver = Driver(
-        name=data["name"],
-        license_number=data["license_number"],
-        contact_info=data["contact_info"],
-        assigned_truck_id=data.get("assigned_truck_id"),
-        created_at=datetime.utcnow()
+        name=data['name'],
+        license_number=data['license_number'],
+        contact_info=data['contact_info'],
+        assigned_truck_id=data.get('assigned_truck_id')
     )
 
     db.session.add(new_driver)
@@ -125,213 +165,192 @@ def create_driver():
 
     return jsonify(new_driver.to_dict()), 201
 
-# PATCH (Update) a driver by ID
-@app.route('/drivers/<int:id>', methods=['PATCH'])
-@login_required
+@app.route('/drivers/<int:id>', methods=['PUT'])
+@admin_required
 def update_driver(id):
     driver = Driver.query.get(id)
     if not driver:
-        return jsonify({"error": "Driver not found"}), 404
+        return jsonify({"error": "Driver not found."}), 404
 
     data = request.get_json()
-
-    if "name" in data:
-        driver.name = data["name"]
-    if "license_number" in data:
-        if Driver.query.filter(Driver.license_number == data["license_number"], Driver.id != id).first():
-            return jsonify({"error": "License number already exists"}), 400
-        driver.license_number = data["license_number"]
-    if "contact_info" in data:
-        driver.contact_info = data["contact_info"]
-    if "assigned_truck_id" in data:
-        driver.assigned_truck_id = data["assigned_truck_id"]
+    driver.name = data.get('name', driver.name)
+    driver.license_number = data.get('license_number', driver.license_number)
+    driver.contact_info = data.get('contact_info', driver.contact_info)
+    driver.assigned_truck_id = data.get('assigned_truck_id', driver.assigned_truck_id)
 
     db.session.commit()
-
     return jsonify(driver.to_dict()), 200
 
-# DELETE a driver by ID
 @app.route('/drivers/<int:id>', methods=['DELETE'])
-@login_required
+@admin_required
 def delete_driver(id):
     driver = Driver.query.get(id)
     if not driver:
-        return jsonify({"error": "Driver not found"}), 404
+        return jsonify({"error": "Driver not found."}), 404
 
     db.session.delete(driver)
     db.session.commit()
+    return jsonify({"message": "Driver deleted successfully."}), 200
 
-    return jsonify({"message": "Driver deleted successfully"}), 200
 
-# GET all trucks
+
+# Truck Routes
+
 @app.route('/trucks', methods=['GET'])
-@login_required
-def get_trucks():
+@admin_required
+def get_all_trucks():
     trucks = Truck.query.all()
-    truck_list = [truck.to_dict() for truck in trucks]
-    return jsonify(truck_list), 200
+    return jsonify([t.to_dict() for t in trucks]), 200
 
-# GET a truck by ID
 @app.route('/trucks/<int:id>', methods=['GET'])
-@login_required
+@admin_required
 def get_truck_by_id(id):
     truck = Truck.query.get(id)
     if not truck:
-        return jsonify({"error": "Truck not found"}), 404
+        return jsonify({"error": "Truck not found."}), 404
 
     return jsonify(truck.to_dict()), 200
 
-# POST a new truck
+
 @app.route('/trucks', methods=['POST'])
-@login_required
+@admin_required
 def create_truck():
     data = request.get_json()
-    
-    required_fields = ['plate_number', 'model', 'status']
-    for field in required_fields:
-        if field not in data or not data[field]:
-            return jsonify({'error': f"Missing required field: {field}"}), 400
+    for field in ['plate_number', 'model']:
+        if field not in data:
+            return jsonify({"error": f"Missing required field: {field}"}), 400
 
-    if Truck.query.filter_by(plate_number=data["plate_number"]).first():
-        return jsonify({"error": "Plate number already exists"}), 400
+    if Truck.query.filter_by(plate_number=data['plate_number']).first():
+        return jsonify({"error": "Truck with this plate number already exists."}), 409
 
     new_truck = Truck(
-        plate_number=data["plate_number"],
-        model=data["model"],
-        status=data["status"],
-        current_driver_id=data.get("current_driver_id"),
-        created_at=datetime.utcnow()
+        plate_number=data['plate_number'],
+        model=data['model'],
+        status=data.get('status', 'Available'),
+        current_driver_id=data.get('current_driver_id')
     )
 
     db.session.add(new_truck)
     db.session.commit()
 
     return jsonify(new_truck.to_dict()), 201
-# PATCH (Update) a truck by ID
-@app.route('/trucks/<int:id>', methods=['PATCH'])
-@login_required
+
+@app.route('/trucks/<int:id>', methods=['PUT'])
+@admin_required
 def update_truck(id):
     truck = Truck.query.get(id)
     if not truck:
-        return jsonify({"error": "Truck not found"}), 404
+        return jsonify({"error": "Truck not found."}), 404
 
     data = request.get_json()
-
-    if "plate_number" in data:
-        if Truck.query.filter(Truck.plate_number == data["plate_number"], Truck.id != id).first():
-            return jsonify({"error": "Plate number already exists"}), 400
-        truck.plate_number = data["plate_number"]
-    if "model" in data:
-        truck.model = data["model"]
-    if "status" in data:
-        truck.status = data["status"]
-    if "current_driver_id" in data:
-        truck.current_driver_id = data["current_driver_id"]
+    truck.model = data.get('model', truck.model)
+    truck.plate_number = data.get('plate_number', truck.plate_number)
+    truck.status = data.get('status', truck.status)
+    truck.current_driver_id = data.get('current_driver_id', truck.current_driver_id)
 
     db.session.commit()
-
     return jsonify(truck.to_dict()), 200
 
-# DELETE a truck by ID
 @app.route('/trucks/<int:id>', methods=['DELETE'])
-@login_required
+@admin_required
 def delete_truck(id):
     truck = Truck.query.get(id)
     if not truck:
-        return jsonify({"error": "Truck not found"}), 404
+        return jsonify({"error": "Truck not found."}), 404
 
     db.session.delete(truck)
     db.session.commit()
+    return jsonify({"message": "Truck deleted successfully."}), 200
 
-    return jsonify({"message": "Truck deleted successfully"}), 200
+# Assignment Routes
 
-# GET all assignments
 @app.route('/assignments', methods=['GET'])
 @login_required
+@admin_or_manager_required
 def get_assignments():
     assignments = Assignment.query.all()
-    return jsonify([assignment.to_dict() for assignment in assignments]), 200
+    return jsonify([a.to_dict() for a in assignments]), 200
 
-# GET an assignment by ID
 @app.route('/assignments/<int:id>', methods=['GET'])
-@login_required
+@admin_or_manager_required
 def get_assignment_by_id(id):
     assignment = Assignment.query.get(id)
     if not assignment:
-        return jsonify({"error": "Assignment not found"}), 404
+        return jsonify({"error": "Assignment not found."}), 404
 
     return jsonify(assignment.to_dict()), 200
 
-# POST a new assignment
+
 @app.route('/assignments', methods=['POST'])
 @login_required
+@admin_or_manager_required
 def create_assignment():
     data = request.get_json()
-    
-    required_fields = ['start_date', 'status', 'driver_id', 'truck_id']
-    for field in required_fields:
-        if field not in data or not data[field]:
-            return jsonify({'error': f"Missing required field: {field}"}), 400
+    try:
+        start_date = datetime.strptime(data['start_date'], '%Y-%m-%d %H:%M:%S')
+        end_date = datetime.strptime(data['end_date'], '%Y-%m-%d %H:%M:%S') if data.get('end_date') else None
 
-    if not Driver.query.get(data["driver_id"]):
-        return jsonify({"error": "Driver not found"}), 404
-    if not Truck.query.get(data["truck_id"]):
-        return jsonify({"error": "Truck not found"}), 404
+        new_assignment = Assignment(
+            start_date=start_date,
+            end_date=end_date,
+            status=data.get('status', 'Active'),
+            driver_id=data['driver_id'],
+            truck_id=data['truck_id']
+        )
 
-    new_assignment = Assignment(
-        start_date=datetime.strptime(data["start_date"], '%Y-%m-%d %H:%M:%S'),
-        end_date=datetime.strptime(data["end_date"], '%Y-%m-%d %H:%M:%S') if data.get("end_date") else None,
-        status=data["status"],
-        driver_id=data["driver_id"],
-        truck_id=data["truck_id"]
-    )
+        db.session.add(new_assignment)
+        db.session.commit()
 
-    db.session.add(new_assignment)
-    db.session.commit()
+        return jsonify(new_assignment.to_dict()), 201
 
-    return jsonify(new_assignment.to_dict()), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
-# PATCH (Update) an assignment by ID
 @app.route('/assignments/<int:id>', methods=['PATCH'])
 @login_required
+@admin_or_manager_required
 def update_assignment(id):
     assignment = Assignment.query.get(id)
     if not assignment:
         return jsonify({"error": "Assignment not found"}), 404
 
     data = request.get_json()
+    try:
+        if 'start_date' in data:
+            assignment.start_date = datetime.strptime(data['start_date'], '%Y-%m-%d %H:%M:%S')
+        if 'end_date' in data:
+            assignment.end_date = datetime.strptime(data['end_date'], '%Y-%m-%d %H:%M:%S')
+        if 'status' in data:
+            assignment.status = data['status']
+        if 'driver_id' in data:
+            assignment.driver_id = data['driver_id']
+        if 'truck_id' in data:
+            assignment.truck_id = data['truck_id']
 
-    if "start_date" in data:
-        assignment.start_date = datetime.strptime(data["start_date"], '%Y-%m-%d %H:%M:%S')
-    if "end_date" in data:
-        assignment.end_date = datetime.strptime(data["end_date"], '%Y-%m-%d %H:%M:%S') if data["end_date"] else None
-    if "status" in data:
-        assignment.status = data["status"]
-    if "driver_id" in data:
-        if not Driver.query.get(data["driver_id"]):
-            return jsonify({"error": "Driver not found"}), 404
-        assignment.driver_id = data["driver_id"]
-    if "truck_id" in data:
-        if not Truck.query.get(data["truck_id"]):
-            return jsonify({"error": "Truck not found"}), 404
-        assignment.truck_id = data["truck_id"]
+        db.session.commit()
+        return jsonify(assignment.to_dict()), 200
 
-    db.session.commit()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
-    return jsonify(assignment.to_dict()), 200
-
-# DELETE an assignment by ID
 @app.route('/assignments/<int:id>', methods=['DELETE'])
 @login_required
+@admin_or_manager_required
 def delete_assignment(id):
     assignment = Assignment.query.get(id)
     if not assignment:
         return jsonify({"error": "Assignment not found"}), 404
 
-    db.session.delete(assignment)
-    db.session.commit()
+    try:
+        db.session.delete(assignment)
+        db.session.commit()
+        return jsonify({"message": "Assignment deleted successfully"}), 200
 
-    return jsonify({"message": "Assignment deleted successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+# Run App
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(port=5555, debug=True)

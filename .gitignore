@@ -1,0 +1,67 @@
+.env
+# Ignore Python compiled files
+_pycache_/
+*.py[cod]
+*$py.class
+
+# Ignore virtual environments
+venv/
+env/
+.venv/
+
+# Ignore environment variables
+.env
+.env.local
+.env.*.local
+
+# Ignore Flask specific files
+instance/
+.webassets-cache
+
+# Ignore IDE specific files (PyCharm, VSCode, etc.)
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+
+# Ignore macOS specific files
+.DS_Store
+
+# Ignore testing and coverage files
+.coverage
+htmlcov/
+.pytest_cache/
+tests/_pycache_/
+_pycache_/
+
+# Ignore logs and databases
+*.log
+*.sqlite
+*.db
+
+# Ignore distribution and build files
+dist/
+build/
+*.egg-info/
+*.egg
+*.manifest
+*.spec
+
+# Ignore pipenv and poetry files
+Pipfile
+Pipfile.lock
+poetry.lock
+pyproject.toml
+
+# Ignore Jupyter Notebook files
+.ipynb_checkpoints/
+
+# Ignore static and media files (if applicable)
+staticfiles/
+mediafiles/
+
+# Ignore other temporary files
+*.tmp
+*.bak

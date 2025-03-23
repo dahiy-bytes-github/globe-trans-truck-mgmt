@@ -1,0 +1,107 @@
+.assignments-list {
+  max-width: 800px;
+  margin: auto;
+  background: white;
+  padding: 20px;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+/* Assignment Form */
+.assignment-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.assignment-form select,
+.assignment-form input,
+.assignment-form button {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+/* Assign button */
+.add-assignment-btn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.add-assignment-btn:hover {
+  background-color: #0056b3;
+}
+
+/* Assignments Table */
+.assignments-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.assignments-table th,
+.assignments-table td {
+  padding: 10px;
+  border: 1px solid #ddd;
+  text-align: center;
+}
+
+.assignments-table th {
+  background-color: #007bff;
+  color: white;
+}
+
+/* Delete Button */
+.delete-btn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.delete-btn:hover {
+  background-color: #c82333;
+}
+
+/* No data message */
+.no-data {
+  text-align: center;
+  color: #555;
+  font-style: italic;
+}
+
+/* Loading and Error Messages */
+.loading,
+.error {
+  text-align: center;
+  font-weight: bold;
+}
+
+.error {
+  color: #d9534f;
+}
+
+/* Status Styling */
+.status-pending {
+  color: #ff9800;
+  font-weight: bold;
+}
+
+.status-ongoing {
+  color: #17a2b8;
+  font-weight: bold;
+}
+
+.status-completed {
+  color: #28a745;
+  font-weight: bold;
+}

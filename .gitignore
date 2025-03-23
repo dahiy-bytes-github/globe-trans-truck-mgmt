@@ -30,9 +30,11 @@ venv/
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
-/.pnp
-.pnp.js
+# Client dependencies and cache
+client/node_modules/
+client/.pnp
+client/.pnp.js
+client/node_modules/.cache/
 
 # testing
 /coverage
@@ -47,7 +49,7 @@ venv/
 .env.test.local
 .env.production.local
 
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+client/npm-debug.log*
+client/yarn-debug.log*
+client/yarn-error.log*
 >>>>>>> b032e603 (first commit)

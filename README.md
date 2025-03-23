@@ -5,28 +5,60 @@ The Fleet Management System is a **full-stack application** designed to manage d
 
 ---
 
-## **Features**
-- **Driver Management**: Track individual drivers and their truck assignments.
-- **Truck Management**: Manage fleet vehicles and their status (Available, In Use, Maintenance).
-- **Assignment Tracking**: Assign drivers to trucks and track assignment history.
-- **User Authentication**: Secure login system for admins and fleet managers.
-- **RESTful API**: Endpoints for CRUD operations on drivers, trucks, assignments, and users.
+## 🚀 Features
+
+- **Driver Management**  
+  Track individual drivers and their truck assignments.
+
+- **Truck Management**  
+  Manage fleet vehicles and their status (Available, In Use, Maintenance).
+
+- **Assignment Tracking**  
+  Assign drivers to trucks and track assignment history.
+
+- **User Authentication**  
+  Secure login system for admins and fleet managers.
+
+- **RESTful API**  
+  Endpoints for full CRUD operations on drivers, trucks, assignments, and users.
+
+- **Responsive UI**  
+  - Fully responsive React-based frontend  
+  - Interactive and intuitive design
+
 
 ---
 
 ## **Technologies Used**
-- **Backend**: Flask, SQLAlchemy, Flask-Migrate
-- **Database**: SQLite (can be replaced with PostgreSQL/MySQL for production)
-- **Authentication**: Werkzeug password hashing
-- **Testing**: Faker for seeding fake data
+
+### **Backend**
+- **Flask**: Lightweight Python web framework
+- **SQLAlchemy**: ORM for database interaction
+- **Flask-Migrate**: Manages database migrations
+
+### **Database**
+- **SQLite**: Default development database  
+  *(Can be replaced with PostgreSQL or MySQL for production)*
+
+### **Authentication**
+- **Werkzeug**: Used for secure password hashing
+
+### **Testing**
+- **Faker**: Used to seed the database with realistic fake data
 
 ---
 
-## **Setup Instructions**
+### **Frontend**
+- **React.js**: Frontend library with component-based architecture
+- **React Router**: Enables client-side routing
+- **CSS**: For styling and layout
+- **React Icons**: Provides a set of popular icons for UI enhancements
 
+## **Setup Instructions**
+backend
 ### **1. Clone the Repository**
 ```bash
-git clone https://github.com/your-username/fleet-management-backend.git
+git clone https://github.com/dahiy-bytes-github/globe-trans-truck-mgmt.git
 cd fleet-management-backend
 ```
 
@@ -57,6 +89,26 @@ python app.py
 The backend will be available at `http://127.0.0.1:5555`.
 
 ---
+## Frontend: Installation and Setup
+
+### Prerequisites
+Ensure you have the following installed on your system:
+- Node.js & npm
+- Git
+
+### Clone the Repository
+```sh
+git clone https://github.com/dahiy-bytes-github/globe-trans-truck-mgmt.git
+cd globe-trans-truck-mgmt/client
+
+### Install Dependencies
+```sh
+npm install
+
+### Start the Frontend Development Server
+```sh
+npm start
+
 
 ## **API Endpoints**
 
@@ -124,6 +176,12 @@ SECRET_KEY=your-secret-key
 
 ---
 
+## Usage
+### Running the Application
+- Open `http://localhost:3000/` in a browser.
+- Register/Login as a user.
+- Admins has full control of the application , while fleet Managers can view assignments.
+
 ## **Future Improvements**
 - Add real-time tracking of truck locations using a map API.
 - Implement WebSocket or Server-Sent Events (SSE) for live updates.
@@ -139,76 +197,14 @@ Contributions are welcome! Please follow these steps:
 4. Push to the branch (`git push origin feature/YourFeatureName`).
 5. Open a pull request.
 
+```
 
-=======
-# Getting Started with Create React App
+## License
+This project is licensed under Group 1/Phase 5 Class.
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Contact
+For any queries or collaborations, feel free to reach out:
+- Email: contact@globetrans.com
+- GitHub: [dahiy-bytes](https://github.com/dahiy-bytes-github)
 
-## Available Scripts
 
-In the project directory, you can run:
-
-### `npm start`
-
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
-
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
-
-### `npm test`
-
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
-
-### `npm run build`
-
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
->>>>>>> b032e603 (first commit)

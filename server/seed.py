@@ -1,8 +1,9 @@
 from faker import Faker
 from datetime import datetime, timedelta
-from models import db, Driver, Truck, Assignment, User
-from app import app
+from models import Driver, Truck, Assignment, User
 from database import db
+from app import app
+from werkzeug.security import generate_password_hash
 import random
 
 # Initialize Faker for generating fake data
@@ -66,7 +67,7 @@ def seed_users(num_users=3):
         user = User(
             username=fake.unique.user_name(),
             email=fake.unique.email(),
-            password_hash=fake.password(length=12),  # Fake password (not actually hashed)
+            password_hash=generate_password_hash(fake.password(length=12)),  # Hash the fake password
             role=fake.random_element(elements=("Admin", "Fleet Manager")),  # Assign random role
             created_at=datetime.utcnow()
         )
@@ -111,4 +112,3 @@ def seed_database():
 
 if __name__ == "__main__":
     seed_database()
-    

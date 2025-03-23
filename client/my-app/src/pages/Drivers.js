@@ -1,5 +1,4 @@
-// src/pages/Drivers.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 const Drivers = () => {
@@ -13,15 +12,20 @@ const Drivers = () => {
   });
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetchDrivers();
+  const getErrorMsg = (err, fallback = 'An error occurred.') => {
+    return err.response?.data?.error || err.response?.data?.message || fallback;
+  };
+
+  // ✅ Wrap fetchDrivers in useCallback to prevent unnecessary re-creation
+  const fetchDrivers = useCallback(() => {
+    axios.get('http://localhost:5555/drivers', { withCredentials: true })
+      .then(response => setDrivers(response.data))
+      .catch(err => setError(getErrorMsg(err, 'Failed to fetch drivers.')));
   }, []);
 
-  const fetchDrivers = () => {
-    axios.get('http://localhost:5000/drivers')
-      .then(response => setDrivers(response.data))
-      .catch(() => setError('Failed to fetch drivers.'));
-  };
+  useEffect(() => {
+    fetchDrivers();
+  }, [fetchDrivers]); // ✅ Correct dependency
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -29,21 +33,18 @@ const Drivers = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (editingDriver) {
-      axios.put(`http://localhost:5000/drivers/${editingDriver.id}`, formData)
-        .then(() => {
-          fetchDrivers();
-          resetForm();
-        })
-        .catch(() => setError('Failed to update driver.'));
-    } else {
-      axios.post('http://localhost:5000/drivers', formData)
-        .then(() => {
-          fetchDrivers();
-          resetForm();
-        })
-        .catch(() => setError('Failed to create driver.'));
-    }
+    const request = editingDriver
+      ? axios.put(`http://localhost:5555/drivers/${editingDriver.id}`, formData, { withCredentials: true })
+      : axios.post('http://localhost:5555/drivers', formData, { withCredentials: true });
+
+    request
+      .then(() => {
+        fetchDrivers();
+        resetForm();
+      })
+      .catch(err => {
+        setError(getErrorMsg(err, editingDriver ? 'Failed to update driver.' : 'Failed to create driver.'));
+      });
   };
 
   const handleEdit = (driver) => {
@@ -57,15 +58,15 @@ const Drivers = () => {
   };
 
   const handleDelete = (id) => {
-    axios.delete(`http://localhost:5000/drivers/${id}`)
+    axios.delete(`http://localhost:5555/drivers/${id}`, { withCredentials: true })
       .then(() => fetchDrivers())
-      .catch(() => setError('Failed to delete driver.'));
+      .catch(err => setError(getErrorMsg(err, 'Failed to delete driver.')));
   };
 
   const handleGetById = (id) => {
-    axios.get(`http://localhost:5000/drivers/${id}`)
+    axios.get(`http://localhost:5555/drivers/${id}`, { withCredentials: true })
       .then(response => alert(JSON.stringify(response.data, null, 2)))
-      .catch(() => setError('Failed to fetch driver details.'));
+      .catch(err => setError(getErrorMsg(err, 'Failed to fetch driver details.')));
   };
 
   const resetForm = () => {
@@ -76,6 +77,7 @@ const Drivers = () => {
       contact_info: '',
       assigned_truck_id: ''
     });
+    setError('');
   };
 
   return (

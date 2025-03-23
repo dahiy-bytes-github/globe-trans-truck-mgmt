@@ -8,11 +8,27 @@ function Home() {
   const companyName = "GlobeTrans Logistics";
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    // Clear authentication (Assuming token is stored in localStorage)
-    localStorage.removeItem("authToken");
-    navigate("/login"); // Redirect to login page
+  const handleLogout = async () => {
+    try {
+      const response = await fetch("http://localhost:5555/logout", {
+        method: "POST",
+        credentials: "include", //  Required for session cookies to be sent
+      });
+  
+      if (response.ok) {
+        navigate("/login");
+      } else {
+        const errorData = await response.json();
+        console.error("Logout failed:", errorData.error);
+        // Optionally show an error to the user
+      }
+  
+      } catch (error) {
+        console.error("Logout error:", error);
+      // Optionally handle the error (e.g., show a toast or alert)
+    }
   };
+  
 
   return (
     <div className="home-wrapper">

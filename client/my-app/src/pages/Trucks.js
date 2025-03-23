@@ -1,5 +1,4 @@
-// src/pages/Trucks.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 const Trucks = () => {
@@ -13,38 +12,35 @@ const Trucks = () => {
   });
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetchTrucks();
+  // ✅ Wrap fetchTrucks in useCallback to avoid re-creation
+  const fetchTrucks = useCallback(() => {
+    axios.get('http://localhost:5555/trucks', { withCredentials: true })
+      .then(response => setTrucks(response.data))
+      .catch(err => handleError(err, 'Failed to fetch trucks.'));
   }, []);
 
-  const fetchTrucks = () => {
-    axios.get('http://localhost:5000/trucks')
-      .then(response => setTrucks(response.data))
-      .catch(() => setError('Failed to fetch trucks.'));
-  };
+  useEffect(() => {
+    fetchTrucks();
+  }, [fetchTrucks]); // ✅ Dependency is now correctly managed
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Create or update truck based on whether we're editing
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (editingTruck) {
-      axios.put(`http://localhost:5000/trucks/${editingTruck.id}`, formData)
-        .then(() => {
-          fetchTrucks();
-          resetForm();
-        })
-        .catch(() => setError('Failed to update truck.'));
-    } else {
-      axios.post('http://localhost:5000/trucks', formData)
-        .then(() => {
-          fetchTrucks();
-          resetForm();
-        })
-        .catch(() => setError('Failed to create truck.'));
-    }
+    const url = editingTruck
+      ? `http://localhost:5555/trucks/${editingTruck.id}`
+      : 'http://localhost:5555/trucks';
+    const method = editingTruck ? 'put' : 'post';
+
+    axios[method](url, formData, { withCredentials: true })
+      .then(() => {
+        fetchTrucks();
+        resetForm();
+        setError('');
+      })
+      .catch(err => handleError(err, editingTruck ? 'Failed to update truck.' : 'Failed to create truck.'));
   };
 
   const handleEdit = (truck) => {
@@ -58,16 +54,18 @@ const Trucks = () => {
   };
 
   const handleDelete = (id) => {
-    axios.delete(`http://localhost:5000/trucks/${id}`)
-      .then(() => fetchTrucks())
-      .catch(() => setError('Failed to delete truck.'));
+    axios.delete(`http://localhost:5555/trucks/${id}`, { withCredentials: true })
+      .then(() => {
+        fetchTrucks();
+        setError('');
+      })
+      .catch(err => handleError(err, 'Failed to delete truck.'));
   };
 
-  // Read (view details) via a simple alert; in a real app you might use a modal or separate page
   const handleGetById = (id) => {
-    axios.get(`http://localhost:5000/trucks/${id}`)
+    axios.get(`http://localhost:5555/trucks/${id}`, { withCredentials: true })
       .then(response => alert(JSON.stringify(response.data, null, 2)))
-      .catch(() => setError('Failed to fetch truck details.'));
+      .catch(err => handleError(err, 'Failed to fetch truck details.'));
   };
 
   const resetForm = () => {
@@ -80,11 +78,16 @@ const Trucks = () => {
     });
   };
 
+  const handleError = (err, fallbackMessage) => {
+    const backendMsg = err.response?.data?.error || err.response?.data?.message;
+    setError(backendMsg || fallbackMessage);
+  };
+
   return (
     <div>
       <h1>Trucks</h1>
       {error && <p style={{ color: 'red' }}>{error}</p>}
-      
+
       <form onSubmit={handleSubmit}>
         <input
           type="text"
